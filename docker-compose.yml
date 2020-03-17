@@ -1,0 +1,25 @@
+version: '3.5'
+
+networks:
+    sf-network:
+        external: true
+
+services:
+    app:
+        build: .
+        # TODO remove (debug)
+        ports:
+            - "8888:8080"
+            - "8887:22"
+        volumes:
+            -   type: bind
+                source: ./app
+                target: /var/www/html
+        networks:
+            sf-network:
+                aliases:
+                    - chrome-to-pdf
+        environment:
+            AUTH-TOKEN: SUPERTEST
+            # TODO remove
+            PHP_IDE_CONFIG: "serverName=chrome-to-pdf"

@@ -1,0 +1,17 @@
+{
+    "name": "ekyna/docker-chrome-pdf",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Etienne Dauvergne",
+            "email": "contact@ekyna.com"
+        }
+    ],
+    "require": {
+        "symfony/process": "^5.0",
+        "jakubkulhan/chrome-devtools-protocol": "^1.0",
+        "tesla-software/chrome2pdf": "^0.2.2",
+        "symfony/http-foundation": "^5.0"
+    }
+}
