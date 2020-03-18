@@ -11,10 +11,10 @@ use Tesla\Chrome2Pdf\Chrome2Pdf;
 use function json_decode;
 
 /**
- * Class UrlPdfController
+ * Class Controller
  * @author  Etienne Dauvergne <contact@ekyna.com>
  */
-class UrlPdfController
+class Controller
 {
     public function __invoke(Request $request)
     {
