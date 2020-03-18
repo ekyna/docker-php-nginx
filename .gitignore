@@ -1,2 +1,6 @@
 /.idea/
+/config/supervisord.debug.conf
+/docker-compose.debug.yml
+/Dockerfile.debug
+/config/xdebug.ini
 /src/vendor/

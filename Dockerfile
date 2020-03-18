@@ -1,70 +1,41 @@
 FROM alpine:3.11
 
-# Install packages
-# TODO remove some packages
-RUN apk --no-cache add php7 php7-fpm php7-mysqli php7-json php7-openssl php7-curl \
-    php7-zlib php7-xml php7-phar php7-intl php7-dom php7-xmlreader php7-ctype php7-session \
-    php7-mbstring php7-gd nginx supervisor curl \
+RUN apk --no-cache add php7 php7-fpm php7-json php7-openssl php7-curl \
+    php7-phar php7-xml php7-dom php7-ctype php7-sockets php7-iconv php7-mbstring php7-session \
+    nginx supervisor curl chromium \
  && php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
  && php -r "if (trim(hash_file('SHA384', 'composer-setup.php')) !== trim(file_get_contents('https://composer.github.io/installer.sig'))) { echo 'Composer installer corrupt' . PHP_EOL; exit(1); }" \
  && php composer-setup.php --quiet --install-dir=/usr/bin --filename=composer \
  && php -r "unlink('composer-setup.php');"
 
-RUN apk add --no-cache --virtual .build-deps \
-    gifsicle pngquant optipng libjpeg-turbo-utils \
-    udev ttf-opensans chromium \
- && rm -rf /var/cache/apk/* /tmp/*
+WORKDIR /var/www/html
 
-#RUN mkdir -p /usr/lib/chromium/swiftshader && \
-#    cp /usr/lib/libGLESv2.so.2.0.0 /usr/lib/chromium/swiftshader/libGLESv2.so && \
-#    cp /usr/lib/libEGL.so.1.0.0 /usr/lib/chromium/swiftshader/libEGL.so
-
-# TODO Remove (temporary for debug) + supervisor sshd config + xdebug.ini
-RUN apk add openssh php7-pecl-xdebug --no-cache \
- && mkdir /var/run/sshd \
- && echo 'root:root' | chpasswd \
- && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
- && ssh-keygen -A \
- && rm -rf /var/cache/apk/*
-
-# Configure nginx
 COPY config/nginx.conf /etc/nginx/nginx.conf
-# Remove default server definition
-RUN rm /etc/nginx/conf.d/default.conf
-
-
-# Configure PHP-FPM
 COPY config/fpm-pool.conf /etc/php7/php-fpm.d/www.conf
 COPY config/php.ini /etc/php7/conf.d/custom.ini
-# TODO Remove
-COPY config/xdebug.ini /etc/php7/conf.d/xdebug.ini
-
-# Configure supervisord
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY --chown=nobody app/ /var/www/html/
 
 # Setup document root
-RUN mkdir -p /var/www/html && \
-    mkdir /var/tmp/nginx
-
-# Make sure files/folders needed by the processes are accessable when they run under the nobody user
-RUN chown -R nobody.nobody /var/www/html && \
-  chown -R nobody.nobody /run && \
-  chown -R nobody.nobody /var/lib/nginx && \
-  chown -R nobody.nobody /var/tmp/nginx && \
-  chown -R nobody.nobody /var/log/nginx
+RUN composer install --prefer-dist --no-dev --no-cache --no-interaction --no-progress --no-suggest \
+ && composer dump-env prod --no-cache \
+ && php bin/console c:c -e prod \
+ && chown -Rf nobody.nobody /var/www/html \
+ && mkdir -p /var/www/html \
+ && mkdir /var/tmp/nginx \
+ && rm /etc/nginx/conf.d/default.conf \
+ && rm /usr/bin/composer \
+ && chown -R nobody:nobody /var/www/html \
+ && chown -R nobody:nobody /run \
+ && chown -R nobody:nobody /var/lib/nginx \
+ && chown -R nobody:nobody /var/tmp/nginx \
+ && chown -R nobody:nobody /var/log/nginx
 
 # Make the document root a volume
 VOLUME /var/www/html
 
 # Switch to use a non-root user from here on
-# TODO USER nobody
-
-# Add application
-WORKDIR /var/www/html
-
-# TODO COPY --chown=nobody app/ /var/www/html/
-# RUN composer install --prefer-dist --no-dev --no-interaction --no-progress --no-suggest && \
-#    php bin/console c:c -e prod
+USER nobody:nobody
 
 # Expose the port nginx is reachable on
 EXPOSE 8080

@@ -2,12 +2,12 @@
 
 namespace App\Security;
 
-use App\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\LogicException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
@@ -18,20 +18,6 @@ use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
  */
 class TokenAuthenticator extends AbstractGuardAuthenticator
 {
-    /**
-     * @var string
-     */
-    private $token;
-
-
-    /**
-     * Constructor.
-     */
-    public function __construct(string $token)
-    {
-        $this->token = $token;
-    }
-
     public function supports(Request $request)
     {
         return $request->headers->has('X-AUTH-TOKEN');
@@ -44,12 +30,21 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
 
     public function getUser($credentials, UserProviderInterface $userProvider)
     {
-        if (empty($this->token) || empty($credentials) || ($credentials !== $this->token)) {
-            // The token header was empty, authentication fails with 401
+        if (!$userProvider instanceof UserProvider) {
+            throw new LogicException("Unexpected user provider.");
+        }
+
+        if (empty($credentials)) {
             return null;
         }
 
-        return new User($credentials);
+        $user = $userProvider->loadUserByUsername($credentials);
+
+        if ($credentials === $user->getPassword()) {
+            return $user;
+        }
+
+        return null;
     }
 
     public function checkCredentials($credentials, UserInterface $user)
@@ -89,7 +84,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     {
         $data = [
             // you might translate this message
-            'message' => 'Authentication Required'
+            'message' => 'Authentication Required',
         ];
 
         return new JsonResponse($data, Response::HTTP_UNAUTHORIZED);

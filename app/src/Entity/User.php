@@ -19,7 +19,7 @@ class User implements UserInterface, EquatableInterface
      *
      * @param string $password
      */
-    public function __construct(string $password)
+    public function __construct(string $password = null)
     {
         $this->password = $password;
     }
