@@ -1,13 +1,15 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Pdf\Chrome2Pdf;
+use Exception;
 use GuzzleHttp\Client;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Tesla\Chrome2Pdf\Chrome2Pdf;
 use function json_decode;
 
 /**
@@ -18,7 +20,7 @@ class Controller
 {
     public function __invoke(Request $request)
     {
-        $config = json_decode($request->getContent(), true);
+        $config = $this->resolveConfig(json_decode($request->getContent(), true));
 
         if (empty($content = $this->getContent($config))) {
             throw new BadRequestHttpException("You must defined either 'url' or 'html' option.");
@@ -31,20 +33,14 @@ class Controller
         ]);
     }
 
-    private function generate(string $content, array $config): string
+    private function resolveConfig(array $config): array
     {
-        $chrome2Pdf = new Chrome2Pdf();
-        $chrome2Pdf
-            ->setChromeExecutablePath('/usr/bin/chromium-browser')
-            ->appendChromeArgs([
-                '--headless',
-                '--disable-gpu',
-                '--disable-software-rasterize',
-                '--disable-dev-shm-usage',
-                '--no-sandbox',
-            ]);
-
-        $config = array_replace([
+        $config = array_replace_recursive([
+            // Content
+            'url'         => null,
+            'html'        => null,
+            'headers'     => [],
+            // Pdf
             'orientation' => 'portrait',
             'format'      => 'A4',
             'paper'       => [
@@ -61,7 +57,46 @@ class Controller
             ],
             'header'      => null,
             'footer'      => null,
+            'security'    => 1,
         ], $config);
+
+        if (!empty($config['html'])) {
+            // Prevent CORS
+            $config['security'] = 0;
+        }
+
+        return $config;
+    }
+
+    private function generate(string $content, array $config): string
+    {
+        $chrome2Pdf = new Chrome2Pdf();
+        $chrome2Pdf
+            ->setChromeExecutablePath('/usr/bin/chromium-browser')
+            ->setTempFolder(sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid())
+            ->appendChromeArgs([
+                // https://peter.sh/experiments/chromium-command-line-switches/
+                '--headless',
+                '--no-sandbox',
+                '--no-zygote',
+                '--allow-http-background-page',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--disable-software-rasterize',
+                '--disable-dev-shm-usage',
+                '--disable-gl-drawing-for-tests',
+                '--disable-canvas-aa',
+                '--disable-2d-canvas-clip-aa',
+                '--use-gl=desktop',
+                '--enable-webgl',
+                '--incognito',
+                '--disable-audio-output',
+                '--no-first-run',
+                '--not-pings',
+                '--disable-infobars',
+                '--disable-breakpad',
+                '--disable-web-security',
+            ]);
 
         if ($config['orientation'] === 'portrait') {
             $chrome2Pdf->portrait();
@@ -73,7 +108,7 @@ class Controller
         if ($paper['width'] && $paper['height'] && $paper['unit']) {
             $chrome2Pdf
                 ->setPaperWidth($paper['width'], $paper['unit'])
-                ->setPaperWidth($paper['height'], $paper['unit']);
+                ->setPaperHeight($paper['height'], $paper['unit']);
         } else {
             $chrome2Pdf->setPaperFormat($config['format']);
         }
@@ -94,17 +129,15 @@ class Controller
                 ->setDisplayHeaderFooter(true);
         }
 
-        return $chrome2Pdf->setContent($content)->pdf();
+        return $chrome2Pdf
+            ->setContent($content)
+            ->setWaitForLifecycleEvent('networkIdle')
+            ->setPrintBackground(true)
+            ->pdf();
     }
 
     private function getContent(array $config): ?string
     {
-        $config = array_replace([
-            'url'     => null,
-            'html'    => null,
-            'headers' => [],
-        ], $config);
-
         if (!empty($config['html'])) {
             return $config['html'];
         }
@@ -118,7 +151,7 @@ class Controller
             $response = $http->request('GET', $config['url'], [
                 'headers' => $config['headers'],
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new NotFoundHttpException($e->getMessage());
         }
 

@@ -2,5 +2,6 @@
 /config/supervisord.debug.conf
 /docker-compose.debug.yml
 /Dockerfile.debug
+/config/fpm-pool.debug.conf
 /config/xdebug.ini
 /src/vendor/
