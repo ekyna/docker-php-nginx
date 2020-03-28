@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Pdf\Chrome2Pdf;
+use App\Pdf\Factory;
 use Exception;
 use GuzzleHttp\Client;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +18,22 @@ use function json_decode;
  */
 class Controller
 {
+    /**
+     * @var Factory
+     */
+    private $factory;
+
+
+    /**
+     * Constructor.
+     *
+     * @param Factory $factory
+     */
+    public function __construct(Factory $factory)
+    {
+        $this->factory = $factory;
+    }
+
     public function __invoke(Request $request)
     {
         $config = $this->resolveConfig(json_decode($request->getContent(), true));
@@ -70,33 +86,7 @@ class Controller
 
     private function generate(string $content, array $config): string
     {
-        $chrome2Pdf = new Chrome2Pdf();
-        $chrome2Pdf
-            ->setChromeExecutablePath('/usr/bin/chromium-browser')
-            ->setTempFolder(sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid())
-            ->appendChromeArgs([
-                // https://peter.sh/experiments/chromium-command-line-switches/
-                '--headless',
-                '--no-sandbox',
-                '--no-zygote',
-                '--allow-http-background-page',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--disable-software-rasterize',
-                '--disable-dev-shm-usage',
-                '--disable-gl-drawing-for-tests',
-                '--disable-canvas-aa',
-                '--disable-2d-canvas-clip-aa',
-                '--use-gl=desktop',
-                '--enable-webgl',
-                '--incognito',
-                '--disable-audio-output',
-                '--no-first-run',
-                '--not-pings',
-                '--disable-infobars',
-                '--disable-breakpad',
-                '--disable-web-security',
-            ]);
+        $chrome2Pdf = $this->factory->create();
 
         if ($config['orientation'] === 'portrait') {
             $chrome2Pdf->portrait();
@@ -129,11 +119,7 @@ class Controller
                 ->setDisplayHeaderFooter(true);
         }
 
-        return $chrome2Pdf
-            ->setContent($content)
-            ->setWaitForLifecycleEvent('networkIdle')
-            ->setPrintBackground(true)
-            ->pdf();
+        return $chrome2Pdf->setContent($content)->pdf();
     }
 
     private function getContent(array $config): ?string

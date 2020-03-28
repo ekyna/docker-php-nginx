@@ -1,12 +1,13 @@
 <?php
-// From https://github.com/tesla-software/chrome2pdf
 declare(strict_types=1);
+
+// From https://github.com/tesla-software/chrome2pdf
 
 namespace App\Pdf;
 
 use InvalidArgumentException;
 
-trait HasPdfAttributes
+trait Attributes
 {
     /**
      * Pdf content

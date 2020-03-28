@@ -1,24 +1,25 @@
 <?php
-// From https://github.com/tesla-software/chrome2pdf
 declare(strict_types=1);
+
+// From https://github.com/tesla-software/chrome2pdf
 
 namespace App\Pdf;
 
-use RuntimeException;
-use InvalidArgumentException;
 use ChromeDevtoolsProtocol\Context;
 use ChromeDevtoolsProtocol\ContextInterface;
 use ChromeDevtoolsProtocol\Instance\Launcher;
+use ChromeDevtoolsProtocol\Model\Emulation\SetEmulatedMediaRequest;
+use ChromeDevtoolsProtocol\Model\Emulation\SetScriptExecutionDisabledRequest;
 use ChromeDevtoolsProtocol\Model\Page\NavigateRequest;
 use ChromeDevtoolsProtocol\Model\Page\PrintToPDFRequest;
 use ChromeDevtoolsProtocol\Model\Page\SetLifecycleEventsEnabledRequest;
-use ChromeDevtoolsProtocol\Model\Emulation\SetScriptExecutionDisabledRequest;
-use ChromeDevtoolsProtocol\Model\Emulation\SetEmulatedMediaRequest;
+use InvalidArgumentException;
+use RuntimeException;
 use Symfony\Component\Filesystem\Filesystem;
 
-class Chrome2Pdf
+class Generator
 {
-    use HasPdfAttributes;
+    use Attributes;
 
     /**
      * Context for operations
@@ -26,11 +27,6 @@ class Chrome2Pdf
      * @var ContextInterface
      */
     private $ctx;
-
-    /**
-     * @var Filesystem
-     */
-    private $fs;
 
     /**
      * Chrome launcher
@@ -88,78 +84,63 @@ class Chrome2Pdf
      */
     private $emulateMedia = null;
 
-    public function __construct()
+    public function __construct(string $tmpFolderPath)
     {
+        $this->tmpFolderPath = rtrim($tmpFolderPath, DIRECTORY_SEPARATOR);
+        $this->chromeArgs[] = "--user-data-dir=" . $this->tmpFolderPath;
         $this->launcher = new Launcher();
-        $this->fs = new Filesystem();
     }
 
-    public function setTempFolder(string $path): Chrome2Pdf
-    {
-        $this->tmpFolderPath = $path;
-
-        return $this;
-    }
-
-    public function getTempFolder(): string
-    {
-        if ($this->tmpFolderPath === null) {
-            return sys_get_temp_dir();
-        }
-
-        return $this->tmpFolderPath;
-    }
-
-    public function setBrowserLauncher(Launcher $launcher): Chrome2Pdf
+    public function setBrowserLauncher(Launcher $launcher): Generator
     {
         $this->launcher = $launcher;
 
         return $this;
     }
 
-    public function setContext(ContextInterface $ctx): Chrome2Pdf
+    public function setContext(ContextInterface $ctx): Generator
     {
         $this->ctx = $ctx;
 
         return $this;
     }
 
-    public function appendChromeArgs(array $args): Chrome2Pdf
+    public function appendChromeArgs(array $args): Generator
     {
         $this->chromeArgs = array_unique(array_merge($this->chromeArgs, $args));
 
         return $this;
     }
 
-    public function setChromeExecutablePath(?string $chromeExecutablePath): Chrome2Pdf
+    public function setChromeExecutablePath(?string $chromeExecutablePath): Generator
     {
         $this->chromeExecutablePath = $chromeExecutablePath;
 
         return $this;
     }
 
-    public function setWaitForLifecycleEvent(?string $event): Chrome2Pdf
+    public function setWaitForLifecycleEvent(?string $event): Generator
     {
         $this->waitForLifecycleEvent = $event;
 
         return $this;
     }
 
-    public function setDisableScriptExecution(bool $disableScriptExecution): Chrome2Pdf
+    public function setDisableScriptExecution(bool $disableScriptExecution): Generator
     {
         $this->disableScriptExecution = $disableScriptExecution;
 
         return $this;
     }
 
-    public function setTimeout(int $timeout): Chrome2Pdf
+    public function setTimeout(int $timeout): Generator
     {
         $this->timeout = $timeout;
 
         return $this;
     }
 
-    public function setEmulateMedia(?string $emulateMedia): Chrome2Pdf
+    public function setEmulateMedia(?string $emulateMedia): Generator
     {
         $this->emulateMedia = $emulateMedia;
 
@@ -184,7 +165,11 @@ class Chrome2Pdf
             $launcher->setExecutable($this->chromeExecutablePath);
         }
         $ctx = $this->ctx;
-        $instance = $launcher->launch($ctx, ...$this->chromeArgs);
+        try {
+            $instance = $launcher->launch($ctx, ...$this->chromeArgs);
+        } catch (\Exception $e) {
+            return null;
+        }
 
         $filename = $this->writeTempFile();
         $pdfOptions = $this->getPDFOptions();
@@ -198,34 +183,40 @@ class Chrome2Pdf
             $devtools = $tab->devtools();
             try {
                 if ($this->disableScriptExecution) {
-                    $devtools->emulation()->setScriptExecutionDisabled($ctx, SetScriptExecutionDisabledRequest::builder()->setValue(true)->build());
+                    $devtools->emulation()->setScriptExecutionDisabled(
+                        $ctx, SetScriptExecutionDisabledRequest::builder()->setValue(true)->build()
+                    );
                 }
 
                 if ($this->emulateMedia !== null) {
-                    $devtools->emulation()->setEmulatedMedia($ctx, SetEmulatedMediaRequest::builder()->setMedia($this->emulateMedia)->build());
+                    $devtools->emulation()->setEmulatedMedia(
+                        $ctx, SetEmulatedMediaRequest::builder()->setMedia($this->emulateMedia)->build()
+                    );
                 }
 
                 $devtools->page()->enable($ctx);
-                $devtools->page()->setLifecycleEventsEnabled($ctx, SetLifecycleEventsEnabledRequest::builder()->setEnabled(true)->build());
+                $devtools->page()->setLifecycleEventsEnabled(
+                    $ctx, SetLifecycleEventsEnabledRequest::builder()->setEnabled(true)->build()
+                );
                 $devtools->page()->navigate($ctx, NavigateRequest::builder()->setUrl('file://' . $filename)->build());
                 $devtools->page()->awaitLoadEventFired($ctx);
 
                 if (null !== $this->waitForLifecycleEvent) {
                     do {
                         $lifecycleEvent = $devtools->page()->awaitLifecycleEvent($ctx)->name;
-                    } while($lifecycleEvent !== $this->waitForLifecycleEvent);
+                    } while ($lifecycleEvent !== $this->waitForLifecycleEvent);
                 }
 
                 $response = $devtools->page()->printToPDF($ctx, $pdfOptions);
                 $pdfResult = base64_decode($response->data);
-            } finally {
+            }
+            finally {
                 $devtools->close();
             }
-        } finally {
+        }
+        finally {
             $instance->close();
         }
-
-        $this->deleteTempFolder();
 
         return $pdfResult;
     }
@@ -237,10 +228,11 @@ class Chrome2Pdf
      */
     protected function writeTempFile(): string
     {
-        $filepath = rtrim($this->getTempFolder(), DIRECTORY_SEPARATOR);
+        $filepath = $this->tmpFolderPath;
 
+        $fs = new Filesystem();
         if (!is_dir($filepath)) {
-            $this->fs->mkdir($filepath);
+            $fs->mkdir($filepath);
         } elseif (!is_writable($filepath)) {
             throw new RuntimeException(sprintf("Unable to write in directory: %s\n", $filepath));
         }
@@ -250,16 +242,6 @@ class Chrome2Pdf
         file_put_contents($filename, $this->content);
 
         return $filename;
-    }
-
-    /**
-     * Delete temporary folder
-     *
-     * @return void
-     */
-    protected function deleteTempFolder(): void
-    {
-        $this->fs->remove(rtrim($this->getTempFolder(), DIRECTORY_SEPARATOR));
     }
 
     /**
