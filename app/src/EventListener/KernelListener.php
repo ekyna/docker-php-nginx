@@ -53,7 +53,7 @@ class KernelListener implements EventSubscriberInterface
                 break;
             }
 
-            usleep(50000);
+            sleep(2);
         }
     }
 

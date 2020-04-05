@@ -9,6 +9,7 @@ use GuzzleHttp\Client;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function json_decode;
 
@@ -42,7 +43,21 @@ class Controller
             throw new BadRequestHttpException("You must defined either 'url' or 'html' option.");
         }
 
-        $generated = $this->generate($content, $config);
+        for ($i = 1; $i <= 3; $i++) {
+            $generated = $this->generate($content, $config);
+
+            if (!empty($generated)) {
+                break;
+            }
+
+            if ($i < 3) {
+                sleep($i);
+            }
+        }
+
+        if (empty($generated)) {
+            throw new HttpException(500, "Failed to generate PDF.");
+        }
 
         return new Response($generated, Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
@@ -84,7 +99,7 @@ class Controller
         return $config;
     }
 
-    private function generate(string $content, array $config): string
+    private function generate(string $content, array $config): ?string
     {
         $chrome2Pdf = $this->factory->create();
 
