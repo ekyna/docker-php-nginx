@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // From https://github.com/tesla-software/chrome2pdf
@@ -7,37 +8,34 @@ namespace App\Pdf;
 
 use InvalidArgumentException;
 
+/**
+ * Trait Attributes
+ * @package App\Pdf
+ * @author  Étienne Dauvergne <contact@ekyna.com>
+ */
 trait Attributes
 {
     /**
      * Pdf content
-     *
-     * @var string
      */
-    private $content;
+    private ?string $content = null;
 
     /**
      * Print background graphics
-     *
-     * @var bool
      */
-    private $printBackground = false;
+    private bool $printBackground = false;
 
     /**
      * Give any CSS @page size declared in the page priority over what is declared
      * in width and height or format options.
      * Defaults to false, which will scale the content to fit the paper size.
-     *
-     * @var bool
      */
-    private $preferCSSPageSize = false;
+    private bool $preferCSSPageSize = false;
 
     /**
      * Paper orientation
-     *
-     * @var string
      */
-    private $orientation = 'portrait';
+    private string $orientation = 'portrait';
 
     /**
      * HTML template for the print header. Should be valid HTML markup.
@@ -46,97 +44,79 @@ trait Attributes
      *
      * @var string|null
      */
-    private $header = null;
+    private ?string $header = null;
 
     /**
      * HTML template for the print footer. Should be valid HTML markup.
      * Script tags inside templates are not evaluated.
      * Page styles are not visible inside templates.
-     *
-     * @var string|null
      */
-    private $footer = null;
+    private ?string $footer = null;
 
     /**
      * Paper width in inches
-     *
-     * @var float
      */
-    private $paperWidth = 8.27;
+    private float $paperWidth = 8.27;
 
     /**
      * Paper height in inches
-     *
-     * @var float
      */
-    private $paperHeight = 11.7;
+    private float $paperHeight = 11.7;
 
     /**
      * Page margins in inches
-     *
-     * @var array
      */
-    private $margins = [
-        'top' => 0.4,
-        'right' => 0.4,
+    private array $margins = [
+        'top'    => 0.4,
+        'right'  => 0.4,
         'bottom' => 0.4,
-        'left' => 0.4,
+        'left'   => 0.4,
     ];
 
     /**
      * Default paper formats
-     *
-     * @var array
      */
-    private $paperFormats = [
-        'letter' => [8.5, 11],
-        'a0' => [33.1, 46.8],
-        'a1' => [23.4, 33.1],
-        'a2' => [16.54, 23.4],
-        'a3' => [11.7, 16.54],
-        'a4' => [8.27, 11.7],
-        'a5' => [5.83, 8.27],
-        'a6' => [4.13, 5.83],
-        'legal' => [8.5, 14],
+    private array $paperFormats = [
+        'letter'  => [8.5, 11],
+        'a0'      => [33.1, 46.8],
+        'a1'      => [23.4, 33.1],
+        'a2'      => [16.54, 23.4],
+        'a3'      => [11.7, 16.54],
+        'a4'      => [8.27, 11.7],
+        'a5'      => [5.83, 8.27],
+        'a6'      => [4.13, 5.83],
+        'legal'   => [8.5, 14],
         'tabloid' => [11, 17],
-        'ledger' => [17, 11],
+        'ledger'  => [17, 11],
     ];
 
     /**
      * Used for converting measurement units
      * Inspired by https://github.com/GoogleChrome/puppeteer
-     *
-     * @var array
      */
-    private $unitToPixels = [
+    private array $unitToPixels = [
         'px' => 1,
         'in' => 96,
         'cm' => 37.8,
-        'mm' => 3.78
+        'mm' => 3.78,
     ];
 
     /**
      * Scale of the webpage rendering.
      * Scale amount must be between 0.1 and 2.
-     *
-     * @var int|float
      */
-    private $scale = 1;
+    private float $scale = 1;
 
     /**
      * Display header and footer.
-     *
-     * @var bool
      */
-    private $displayHeaderFooter = false;
+    private bool $displayHeaderFooter = false;
 
     /**
      * Paper ranges to print, e.g., '1-5, 8, 11-13'.
      * By default prints all pages.
-     *
-     * @var string|null
      */
-    private $pageRanges = null;
+    private ?string $pageRanges = null;
 
     public function setPaperFormat(string $format): self
     {
@@ -223,7 +203,7 @@ trait Attributes
         return $this;
     }
 
-    public function setScale($scale): self
+    public function setScale(float $scale): self
     {
         $this->scale = $scale;
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controller;
@@ -8,6 +9,7 @@ use Exception;
 use GuzzleHttp\Client;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -19,25 +21,17 @@ use function json_decode;
  */
 class Controller
 {
-    /**
-     * @var Factory
-     */
-    private $factory;
-
-
-    /**
-     * Constructor.
-     *
-     * @param Factory $factory
-     */
-    public function __construct(Factory $factory)
-    {
-        $this->factory = $factory;
+    public function __construct(
+        private readonly Factory $factory,
+        private readonly string $token
+    ) {
     }
 
-    public function __invoke(Request $request)
+    public function __invoke(Request $request): Response
     {
-        $config = $this->resolveConfig(json_decode($request->getContent(), true));
+        $this->authorize($request);
+
+        $config = $this->resolveConfig((array)json_decode($request->getContent() ?: '', true));
 
         if (empty($content = $this->getContent($config))) {
             throw new BadRequestHttpException("You must defined either 'url' or 'html' option.");
@@ -56,12 +50,23 @@ class Controller
         }
 
         if (empty($generated)) {
-            throw new HttpException(500, "Failed to generate PDF.");
+            throw new HttpException(500, 'Failed to generate PDF.');
         }
 
         return new Response($generated, Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
         ]);
+    }
+
+    private function authorize(Request $request): void
+    {
+        if (!$request->headers->has('X-AUTH-TOKEN')) {
+            throw new AccessDeniedHttpException();
+        }
+
+        if ($this->token !== $request->headers->get('X-AUTH-TOKEN')) {
+            throw new AccessDeniedHttpException();
+        }
     }
 
     private function resolveConfig(array $config): array
@@ -77,14 +82,14 @@ class Controller
             'paper'       => [
                 'width'  => null,
                 'height' => null,
-                'unit'   => 'in',
+                'unit'   => 'mm',
             ],
             'margins'     => [
                 'top'    => 10,
                 'right'  => 10,
                 'bottom' => 10,
                 'left'   => 10,
-                'unit'   => 'in',
+                'unit'   => 'mm',
             ],
             'header'      => null,
             'footer'      => null,
@@ -156,7 +161,7 @@ class Controller
             throw new NotFoundHttpException($e->getMessage());
         }
 
-        if (200 !== $code = $response->getStatusCode()) {
+        if (200 !== $response->getStatusCode()) {
             throw new NotFoundHttpException($response->getReasonPhrase());
         }
 

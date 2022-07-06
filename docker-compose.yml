@@ -1,15 +1,16 @@
 version: '3.5'
 
 networks:
-    sf-network:
+    sfbundles-network:
         external: true
 
 services:
     app:
         build: .
         networks:
-            sf-network:
+            sfbundles-network:
                 aliases:
                     - chrome-to-pdf
         environment:
-            AUTH_TOKEN: SuperTest
+            TZ: Europe/Paris
+            AUTH_TOKEN: SomeHash

@@ -5,10 +5,10 @@ services:
     app:
         build: .
         environment:
-            AUTH_TOKEN: SUPERTEST
+            AUTH_TOKEN: TimeToTest
 
     sut:
-        image: alpine:3.11
+        image: alpine:3.16
         depends_on:
             - app
         command: /tmp/run_tests.sh

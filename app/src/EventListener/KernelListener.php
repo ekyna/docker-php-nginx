@@ -1,32 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\EventListener;
 
 use App\Pdf\Factory;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\HttpKernel\KernelEvents;
+use Throwable;
 
 /**
  * Class KernelListener
  * @package EventListener
  * @author  Étienne Dauvergne <contact@ekyna.com>
  */
-class KernelListener implements EventSubscriberInterface
+class KernelListener
 {
-    /**
-     * @var Factory
-     */
-    private $factory;
-
-    /**
-     * Constructor.
-     *
-     * @param Factory $factory
-     */
-    public function __construct(Factory $factory)
+    public function __construct(private readonly Factory $factory)
     {
-        $this->factory = $factory;
     }
 
     public function onTerminate(): void
@@ -44,8 +34,7 @@ class KernelListener implements EventSubscriberInterface
                 try {
                     $fs->remove($path);
                     unset($tempFolders[$index]);
-                } catch (\Throwable $e) {
-
+                } catch (Throwable) {
                 }
             }
 
@@ -55,15 +44,5 @@ class KernelListener implements EventSubscriberInterface
 
             sleep(2);
         }
-    }
-
-    /**
-     * @return array
-     */
-    public static function getSubscribedEvents()
-    {
-        return [
-            KernelEvents::TERMINATE => ['onTerminate', 0],
-        ];
     }
 }

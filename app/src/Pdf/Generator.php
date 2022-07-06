@@ -16,78 +16,66 @@ use ChromeDevtoolsProtocol\Model\Page\SetLifecycleEventsEnabledRequest;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Filesystem\Filesystem;
+use Throwable;
 
+/**
+ * Class Generator
+ * @package App\Pdf
+ * @author  Étienne Dauvergne <contact@ekyna.com>
+ */
 class Generator
 {
     use Attributes;
 
     /**
      * Context for operations
-     *
-     * @var ContextInterface
      */
-    private $ctx;
+    private ContextInterface $ctx;
 
     /**
      * Chrome launcher
-     *
-     * @var Launcher
      */
-    private $launcher;
+    private Launcher $launcher;
 
     /**
      * Path to temporary html files
-     *
-     * @var string|null
      */
-    private $tmpFolderPath = null;
+    private string $tmpFolderPath;
 
     /**
      * Path to Chrome binary
-     *
-     * @var string|null
      */
-    private $chromeExecutablePath = null;
+    private ?string $chromeExecutablePath = null;
 
     /**
      * Additional Chrome command line arguments
-     *
-     * @var array
      */
-    private $chromeArgs = [];
+    private array $chromeArgs = [];
 
     /**
      * Wait for a given lifecycle event before printing pdf
-     *
-     * @var string|null
      */
-    private $waitForLifecycleEvent = null;
+    private ?string $waitForLifecycleEvent = null;
 
     /**
      * Whether script execution should be disabled in the page.
-     *
-     * @var bool
      */
-    private $disableScriptExecution = false;
+    private bool $disableScriptExecution = false;
 
     /**
      * Web socket connection timeout
-     *
-     * @var int
      */
-    private $timeout = 10;
+    private int $timeout = 10;
 
     /**
      * Emulates the given media for CSS media queries
-     *
-     * @var string|null
      */
-    private $emulateMedia = null;
+    private ?string $emulateMedia = null;
 
     public function __construct(string $tmpFolderPath)
     {
         $this->tmpFolderPath = rtrim($tmpFolderPath, DIRECTORY_SEPARATOR);
-        $this->chromeArgs[] = "--user-data-dir=" . $this->tmpFolderPath;
+        $this->chromeArgs[] = '--user-data-dir=' . $this->tmpFolderPath;
         $this->launcher = new Launcher();
     }
 
@@ -149,8 +137,6 @@ class Generator
 
     /**
      * Generate PDF
-     *
-     * @return string|null
      */
     public function pdf(): ?string
     {
@@ -164,10 +150,11 @@ class Generator
         if ($this->chromeExecutablePath) {
             $launcher->setExecutable($this->chromeExecutablePath);
         }
+
         $ctx = $this->ctx;
         try {
             $instance = $launcher->launch($ctx, ...$this->chromeArgs);
-        } catch (\Exception $e) {
+        } catch (Throwable) {
             return null;
         }
 
@@ -246,8 +233,6 @@ class Generator
 
     /**
      * Populate PDF options
-     *
-     * @return array
      */
     protected function getPDFOptions(): PrintToPDFRequest
     {

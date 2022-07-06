@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pdf;
@@ -10,16 +11,8 @@ namespace App\Pdf;
  */
 class Factory
 {
-    /**
-     * @var array
-     */
-    private $tempFolders = [];
+    private array $tempFolders = [];
 
-    /**
-     * Returns the tempFolders.
-     *
-     * @return array
-     */
     public function getTempFolders(): array
     {
         return $this->tempFolders;
@@ -52,10 +45,13 @@ class Factory
                 '--incognito',
                 '--disable-audio-output',
                 '--no-first-run',
-                '--not-pings',
+                '--no-pings',
                 '--disable-infobars',
                 '--disable-breakpad',
                 '--disable-web-security',
+                '--allow-sandbox-debugging',
+                '--debug-devtools',
+                '--debug-print',
             ]);
 
         return $generator;
