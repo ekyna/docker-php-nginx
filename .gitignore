@@ -5,3 +5,6 @@
 /config/fpm-pool.debug.conf
 /config/xdebug.ini
 /src/vendor/
+/app/.pki/
+/app/.config/
+/app/.local/

@@ -3,14 +3,19 @@ version: '3.5'
 services:
 
     app:
-        build: .
+        build:
+            context: .
+            target: production
+        ports:
+            - "8080:8080"
         environment:
+            TZ: Europe/Paris
             AUTH_TOKEN: TimeToTest
 
-    sut:
-        image: alpine:3.16
-        depends_on:
-            - app
-        command: /tmp/run_tests.sh
-        volumes:
-            - "./run_tests.sh:/tmp/run_tests.sh:ro"
+#    sut:
+#        image: alpine:3.16
+#        depends_on:
+#            - app
+#        command: /tmp/run_tests.sh
+#        volumes:
+#            - "./run_tests.sh:/tmp/run_tests.sh:ro"

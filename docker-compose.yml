@@ -1,16 +1,27 @@
 version: '3.5'
 
 networks:
-    sfbundles-network:
+    default:
+        name: sfbundles-network
         external: true
 
 services:
     app:
-        build: .
-        networks:
-            sfbundles-network:
-                aliases:
-                    - chrome-to-pdf
+        build:
+            context: .
+            target: development
+        volumes:
+            - ./app:/var/www
+        ports:
+            - "8080:8080"
         environment:
             TZ: Europe/Paris
             AUTH_TOKEN: SomeHash
+            PHP_IDE_CONFIG: "serverName=chrometopdf"
+            XDEBUG_SESSION: chrometopdf
+        extra_hosts:
+            - "fr.sf.local:172.21.0.2"
+        networks:
+            default:
+                aliases:
+                    - chrome-to-pdf

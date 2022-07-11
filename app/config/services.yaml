@@ -1,22 +1,57 @@
 parameters:
 
 services:
-    _defaults:
-        autowire: false
-        autoconfigure: false
-
-    App\Controller\Controller:
+    app.factory:
+        class: HeadlessChromium\BrowserFactory
         arguments:
-            - '@App\Pdf\Factory'
+            - '%env(string:CHROME_BINARY)%'
+
+    app.browser:
+        class: HeadlessChromium\Browser\ProcessAwareBrowser
+        factory: ['@app.factory', 'createBrowser']
+        arguments:
+            -   ignoreCertificateErrors: true
+                noSandbox: true
+
+    app.generator:
+        class: App\Pdf\Generator
+        arguments:
+            - '@app.browser'
+
+    app.controller:
+        class: App\Controller\Controller
+        arguments:
+            - '@app.generator'
             - '%env(string:AUTH_TOKEN)%'
         public: true
 
-    App\EventListener\KernelListener:
+    app.listener.kernel:
+        class: App\Listener\KernelListener
         arguments:
-            - '@App\Pdf\Factory'
+            - '@app.browser'
         tags:
-            - name: kernel.listener
+            - name: kernel.event_listener
               event: kernel.terminate
-              method: onTerminate
 
-    App\Pdf\Factory: ~
+when@dev:
+    services:
+        app.command.generate:
+            class: App\Command\GenerateCommand
+            arguments:
+                - '@app.generator'
+            tags:
+                - 'console.command'
+
+        app.browser:
+            class: HeadlessChromium\Browser\ProcessAwareBrowser
+            factory: [ '@app.factory', 'createBrowser' ]
+            arguments:
+                -   ignoreCertificateErrors: true
+                    noSandbox: true
+                    debugLogger: '@logger'
+
+        app.controller.test:
+            class: App\Controller\TestController
+            arguments:
+                - '@app.generator'
+            public: true

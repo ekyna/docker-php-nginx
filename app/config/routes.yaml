@@ -1,8 +1,3 @@
 index:
     path: /
-    controller: App\Controller\Controller
-
-when@dev:
-    _errors:
-        resource: '@FrameworkBundle/Resources/config/routing/errors.xml'
-        prefix: /_error
+    controller: app.controller
