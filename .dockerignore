@@ -2,3 +2,4 @@
 /app/vendor/
 /app/.env.local.php
 /app/.pki
+/docker-compose.*.yaml

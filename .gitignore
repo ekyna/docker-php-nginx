@@ -1,9 +1,5 @@
 /.idea/
-/config/supervisord.debug.conf
-/docker-compose.debug.yml
-/Dockerfile.debug
-/config/fpm-pool.debug.conf
-/config/xdebug.ini
+/docker-compose.dev.yaml
 /src/vendor/
 /app/.pki/
 /app/.config/

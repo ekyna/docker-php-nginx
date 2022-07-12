@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
+
 apk --no-cache add curl >> /dev/null 2>&1
 
 sleep 4
 
 CODE=$(
     curl -s -o /dev/null -w "%{http_code}" \
-        -X POST http://app:8080/ \
+        -X POST http://localhost:8080/ \
         -H "X-AUTH-TOKEN: TimeToTest" \
         -H "Content-type: application/json" \
         -H "Accept: application/pdf" \
