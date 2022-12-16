@@ -90,7 +90,7 @@ class Generator
             'footerTemplate'      => '',
             // ---
             'landscape'           => false,
-            'printBackground'     => false,
+            'printBackground'     => true,
             'displayHeaderFooter' => false,
             'preferCSSPageSize'   => false, // reads parameters directly from @page
             // ---
