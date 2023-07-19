@@ -5,8 +5,11 @@ services:
         build:
             context: .
             target: production
+        image: ekyna/chrome-to-pdf:latest
         ports:
             - "8080:8080"
         environment:
             TZ: Europe/Paris
             AUTH_TOKEN: SomeHash
+        extra_hosts:
+            - "fr.sf.local:192.168.1.55"

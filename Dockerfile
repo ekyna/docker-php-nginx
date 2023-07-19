@@ -1,4 +1,4 @@
-FROM php:8.1-fpm-alpine3.15 as base
+FROM php:8.2-fpm-alpine3.18 as base
 
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 

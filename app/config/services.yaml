@@ -10,8 +10,7 @@ services:
         class: HeadlessChromium\Browser\ProcessAwareBrowser
         factory: ['@app.factory', 'createBrowser']
         arguments:
-            -   ignoreCertificateErrors: true
-                noSandbox: true
+            -   noSandbox: true
 
     app.generator:
         class: App\Pdf\Generator
@@ -46,8 +45,8 @@ when@dev:
             class: HeadlessChromium\Browser\ProcessAwareBrowser
             factory: [ '@app.factory', 'createBrowser' ]
             arguments:
-                -   ignoreCertificateErrors: true
-                    noSandbox: true
+                -   noSandbox: true
+                    ignoreCertificateErrors: true
                     debugLogger: '@logger'
 
         app.controller.test:

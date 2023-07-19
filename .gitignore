@@ -1,6 +1,7 @@
 /.idea/
-/docker-compose.dev.yaml
-/src/vendor/
-/app/.pki/
+/app/.cache/
 /app/.config/
 /app/.local/
+/app/.pki/
+/src/vendor/
+/docker-compose.dev.yaml

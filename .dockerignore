@@ -1,5 +1,6 @@
+/app/.cache
+/app/.pki
 /app/var/
 /app/vendor/
 /app/.env.local.php
-/app/.pki
-/docker-compose.*.yaml
+/docker-compose*.yaml
